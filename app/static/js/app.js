@@ -8,6 +8,75 @@ const app = Vue.createApp({
     }
 });
 
+const UploadForm = {
+    name: 'upload-form',
+    template: `
+    <h1 id ="form-heading">Upload Form</h1>
+    <div class="errorclass">
+        <ul class="uploadmessage" v-for="message in messages">
+            <li >{{message}}</li>
+        </ul>
+    </div>
+    <form method="POST" id="UploadForm" @submit.prevent="uploadPhoto">
+
+        <div class="form-group">
+            <label class="form-label" for="description">Description about Image</label>
+            <textarea type="text" name="description" class="form-control"></textarea>
+            <label for="photo">Photo Upload</label>
+            <input type="file" name="photo" id="photo" class="form-control" accept="image/x-png,image/jpg">
+        </div>
+        <button type="submit" name="submit" class="btn btn-success">Submit</button>
+    </form>
+    `,
+    data: function() {
+        return {
+            messages: [],
+            errors: [],
+            className : ''
+        }
+    },
+    methods: {
+        uploadPhoto: function() {
+            let self = this;
+            let UploadForm = document.getElementById('UploadForm');
+            let form_data = new FormData(UploadForm);
+
+            fetch("/api/upload", {
+                method: 'POST',
+                body: form_data,
+                headers: {
+                    'X-CSRFToken': token
+                },
+                credentials: 'same-origin'        
+            })
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(jsonResponse) {
+                console.log('data');
+                console.log(jsonResponse);
+
+                if (jsonResponse['data']) {
+                    self.className = "data"
+                    self.messages = [jsonResponse[
+                        'data']
+                        ['message']];
+                } else {
+                    self.messages = jsonResponse
+                    ['errors']
+                    ['errors'];
+                    self.className = "errors"
+                }
+
+            })
+            .catch(function(error) {
+                console.log(error);
+            });
+    
+        }
+    }
+};
+
 app.component('app-header', {
     name: 'AppHeader',
     template: `
@@ -21,6 +90,9 @@ app.component('app-header', {
         <ul class="navbar-nav mr-auto">
           <li class="nav-item active">
             <router-link class="nav-link" to="/">Home <span class="sr-only">(current)</span></router-link>
+          </li>
+          <li class="nav-item active">
+            <router-link class="nav-link" to="/upload">Upload</router-link>
           </li>
         </ul>
       </div>
@@ -73,6 +145,7 @@ const NotFound = {
 const routes = [
     { path: "/", component: Home },
     // Put other routes here
+    {path:"/upload", component: UploadForm},
 
     // This is a catch all route in case none of the above matches
     { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFound }
